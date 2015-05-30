@@ -17,15 +17,15 @@ var FQL = function(data) {
 };
 
 FQL.prototype.exec = function() {
-	return this.data;
+	return this.data.slice();
 };
 
 FQL.prototype.count = function() {
-	return this.data.length;
+	return this.exec().length;
 };
 
 FQL.prototype.limit = function(lim) {
-	return new FQL(this.data.slice(0, lim));
+	return new FQL(this.exec().slice(0, lim));
 };
 
 FQL.prototype.where = function(whereObj) {
@@ -64,21 +64,32 @@ FQL.prototype.where = function(whereObj) {
 };
 
 FQL.prototype.select = function(selArr) {
-	results = [];
-	for (var j = 0; j < this.data.length; j++) {
-		results[j] = {};
-		for(i=0; i < selArr.length; i++) {
-				results[j][selArr[i]] = this.data[j][selArr[i]]
-			}
-		}	
-	return new FQL(results);
+	//iterative approach
+
+	// results = [];
+	// for (var j = 0; j < this.data.length; j++) {
+	// 	results[j] = {};
+	// 	for(i=0; i < selArr.length; i++) {
+	// 			results[j][selArr[i]] = this.data[j][selArr[i]]
+	// 		}
+	// 	}	
+
+	//map approach
+
+	var table = this.data.map(function(row) {
+		var newRow = {};
+		for (var j = 0; j < selArr.length; j++) {
+			var selItem = selArr[j];
+			newRow[selItem] = row[selItem];
+		}
+		return newRow;
+	})
+	return new FQL(table);
 };
 
 FQL.prototype.order = function(key) {
 	var compare = function(a,b) {
-		if (a[key] > b[key]) {return 1};
-		if (a[key] < b[key]) {return -1};
-		if (a[key] === b[key]) {return 0};
+		return a[key] - b[key];
 	};
 	return new FQL(this.data.sort(compare));
 };
@@ -97,7 +108,6 @@ FQL.prototype.left_join = function(joinTable, joinFunc) {
 
 FQL.prototype.addIndex = function(colName) {
 	var attr = this.select(colName.split(","));
-	//console.log(attr);
 	results = {};
 	this.indexTable = {};
 	this.indexTable[colName] = {};
@@ -107,23 +117,8 @@ FQL.prototype.addIndex = function(colName) {
 		}
 		results[attr.data[idx][colName]].push(parseInt(idx));
 	}
-
 	this.indexTable[colName] = results;
-	//console.log(this);
 	return this;
-
-	// var sourceTable = this.exec();
-	// var i = 0;
-	// var indexTable = {};
-	// sourceTable.forEach( function(sourceObj) {
-	// 	var colName = sourceObj[indexCol]
-	// 	if (!indexTable[colName]){
-	// 		indexTable[colName] = []
-	// 	}
-	// 	indexTable[colName].push(i)
-	// 	i++
-	// })
-	// this.indexTable = indexArray
 };
 
 FQL.prototype.getIndicesOf = function(colName, colVal) {
@@ -132,26 +127,3 @@ FQL.prototype.getIndicesOf = function(colName, colVal) {
 	}
 	return this.indexTable[colName][colVal];
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
